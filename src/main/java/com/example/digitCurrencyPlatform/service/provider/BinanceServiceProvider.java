@@ -1,9 +1,10 @@
 package com.example.digitCurrencyPlatform.service.provider;
 
-import com.example.digitCurrencyPlatform.enums.BinanceInterval;
+import com.example.digitCurrencyPlatform.enums.Interval;
 import com.example.digitCurrencyPlatform.model.Kline;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
@@ -12,6 +13,7 @@ import java.util.List;
 
 
 // retrieve kline data from Binance
+@Validated
 @Service
 public class BinanceServiceProvider implements KlineDataProvider {
     private static final String BINANCE_V3_KLINE_API_URL = "https://www.binance.com/api/v3/klines";
@@ -23,11 +25,12 @@ public class BinanceServiceProvider implements KlineDataProvider {
     }
 
     @Override
-    public List<Kline> fetchKlines(String symbol, BinanceInterval interval, long startTime, long endTime) {
+    public List<Kline> fetchKlines(String symbol, Interval interval, Long startTime, Long endTime) {
         String requestUrl = String.format(
                 "%s?symbol=%s&interval=%s&startTime=%d&endTime=%d",
                 BINANCE_V3_KLINE_API_URL, symbol, interval.getValue(), startTime, endTime
         );
+
 
         ResponseEntity<List> response = restTemplate.getForEntity(requestUrl, List.class);
         List<List<Object>> rawKlines = response.getBody();
@@ -39,6 +42,7 @@ public class BinanceServiceProvider implements KlineDataProvider {
         }
 
         List<Kline> klines = new ArrayList<>();
+
         for (List<Object> item : rawKlines) {
             try {
                 Kline kline = new Kline(
@@ -62,6 +66,7 @@ public class BinanceServiceProvider implements KlineDataProvider {
 
         return klines;
     }
+
 
     @Override
     public String getProviderName() {

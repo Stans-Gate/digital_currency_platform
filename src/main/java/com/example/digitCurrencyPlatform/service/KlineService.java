@@ -1,16 +1,16 @@
 package com.example.digitCurrencyPlatform.service;
 
-import com.example.digitCurrencyPlatform.enums.BinanceInterval;
+import com.example.digitCurrencyPlatform.enums.Interval;
+import com.example.digitCurrencyPlatform.model.InputInvalidException;
 import com.example.digitCurrencyPlatform.model.Kline;
 import com.example.digitCurrencyPlatform.repository.KlineRepository;
 import com.example.digitCurrencyPlatform.service.provider.KlineDataProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.math.BigDecimal;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class KlineService {
@@ -25,10 +25,7 @@ public class KlineService {
         dataProviders.forEach(provider -> providers.put(provider.getProviderName().toUpperCase(), provider));
     }
 
-    /**
-     * Fetch and save kline data using parallel streams
-     */
-    public void fetchAndSaveKlines(String providerName, String symbol, BinanceInterval interval, long startTime, long endTime, int limit) {
+    public void fetchAndSaveKlines(String providerName, String symbol, Interval interval, long startTime, long endTime, int limit) {
         KlineDataProvider provider = providers.get(providerName.toUpperCase());
         if (provider == null) {
             throw new IllegalArgumentException("Provider not found");
@@ -67,21 +64,108 @@ public class KlineService {
 //        }
     }
 
-    /**
-     * Retrieve limit number of klines with startTime, endTime
-     */
-    public List<Kline> getKlines(String symbol, long startTime, long endTime, int limit) {
-        List<Kline> klines = klineRepository.findRecentKlineData(symbol, startTime, endTime, limit);
-        System.out.println("Number of klines retrieved from database: " + klines.size());
-        return klines;
+
+    public List<Kline> retrieveKlinesWithDifferentIntervals(String symbol, Interval interval, long startTime, long endTime, int limit, Interval baseInterval) {
+        int numToRetrieve;
+        long targetIntervalMs = interval.getMilliseconds();
+        long baseIntervalMs = baseInterval.getMilliseconds();
+
+        if (targetIntervalMs < baseIntervalMs) {
+            throw new InputInvalidException("Target interval must be greater than base interval");
+        }
+
+        int baseIntervalsPerTarget = (int) (targetIntervalMs / baseIntervalMs);
+        numToRetrieve = limit * baseIntervalsPerTarget;
+
+        System.out.println(numToRetrieve);
+        List<Kline> klines = klineRepository.retrieveKlineDataWithStartAndEndTime(symbol, startTime, endTime, numToRetrieve);
+
+
+        if (klines.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        if (targetIntervalMs == baseIntervalMs) {
+            return klines.stream().limit(limit).collect(Collectors.toList());
+        }
+
+        List<Kline> aggregatedKlines = aggregateKlines(klines, interval, baseInterval);
+
+        return aggregatedKlines.stream().limit(limit).collect(Collectors.toList());
     }
 
-    /**
-     * Retrieve klines with interval enum support
-     */
-    public List<Kline> getKlinesByStartTimeAndInterval(String symbol, BinanceInterval interval, long startTime, int limit) {
-        long endTime = startTime + interval.getMilliseconds() + 1;
-        return getKlines(symbol, startTime, endTime, limit);
+
+    private List<Kline> aggregateKlines(List<Kline> klines, Interval interval, Interval baseInterval) {
+        if (interval.getMilliseconds() < baseInterval.getMilliseconds()) {
+            throw new IllegalArgumentException();
+        }
+        long targetIntervalMs = interval.getMilliseconds();
+        long baseIntervalMs = baseInterval.getMilliseconds();
+        int baseIntervalsPerTarget = (int) (targetIntervalMs / baseIntervalMs);
+
+        klines.sort(Comparator.comparing(Kline::getOpenTime));
+
+        List<Kline> aggregatedKlines = new ArrayList<>();
+
+        long firstKlineTime = klines.get(0).getOpenTime();
+
+        long windowStart = firstKlineTime;
+
+        int currentIndex = 0;
+
+        while (currentIndex < klines.size()) {
+            long windowEnd = windowStart + targetIntervalMs;
+            List<Kline> windowKlines = new ArrayList<>();
+
+            for (int i = 0; i < baseIntervalsPerTarget; i++) {
+                windowKlines.add(klines.get(currentIndex));
+                currentIndex++;
+            }
+
+            if (!windowKlines.isEmpty()) {
+                Kline aggregatedKline = aggregateKlineWindow(windowKlines, windowStart, targetIntervalMs);
+                aggregatedKlines.add(aggregatedKline);
+            }
+
+            windowStart = windowEnd;
+        }
+
+        return aggregatedKlines;
+    }
+
+
+    private Kline aggregateKlineWindow(List<Kline> klines, long windowStart, long intervalMs) {
+        if (klines.isEmpty()) {
+            throw new IllegalArgumentException("Cannot aggregate empty kline list");
+        }
+
+        String symbol = klines.get(0).getSymbol();
+        long openTime = windowStart;
+        long closeTime = windowStart + intervalMs - 1;
+
+        // first kline's open price
+        BigDecimal openPrice = klines.get(0).getOpenPrice();
+
+        // last kline's open price
+        BigDecimal closePrice = klines.get(klines.size() - 1).getClosePrice();
+
+        // High price: max high price of all klines in this timeWindow
+        BigDecimal highPrice = klines.stream()
+                .map(Kline::getHighPrice)
+                .max(BigDecimal::compareTo)
+                .orElse(BigDecimal.ZERO);
+
+        // Low price: min low price of all klines in the window
+        BigDecimal lowPrice = klines.stream()
+                .map(Kline::getLowPrice)
+                .min(BigDecimal::compareTo)
+                .orElse(BigDecimal.ZERO);
+
+        // Volume: sum of all
+        BigDecimal volume = klines.stream().map(Kline::getVolume).reduce(BigDecimal.ZERO, BigDecimal::add);
+        Long numberOfTrades = klines.stream().mapToLong(Kline::getNumberOfTrades).sum();
+
+        return new Kline(symbol, openTime, closeTime, openPrice, closePrice, highPrice, lowPrice, volume, numberOfTrades);
     }
 
 
@@ -90,11 +174,11 @@ public class KlineService {
         return new ArrayList<>(providers.keySet());
     }
 
-    private List<TimeRange> createTimeRanges(long startTime, long endTime, long limit) {
+    private List<TimeRange> createTimeRanges(Long startTime, Long endTime, Long limit) {
         List<TimeRange> ranges = new ArrayList<>();
 
-        for (long current = startTime; current < endTime; current += limit) {
-            long rangeEnd = Math.min(current + limit, endTime);
+        for (Long current = startTime; current < endTime; current += limit) {
+            Long rangeEnd = Math.min(current + limit, endTime);
             ranges.add(new TimeRange(current, rangeEnd));
         }
 

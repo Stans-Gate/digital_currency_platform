@@ -1,6 +1,10 @@
 package com.example.digitCurrencyPlatform.enums;
 
-public enum BinanceInterval {
+import com.example.digitCurrencyPlatform.model.InputInvalidException;
+import lombok.Getter;
+
+@Getter
+public enum Interval {
     // Seconds
     ONE_SECOND("1s", 1000L),
 
@@ -32,26 +36,18 @@ public enum BinanceInterval {
     private final String value;
     private final long milliseconds;
 
-    BinanceInterval(String value, long milliseconds) {
+    Interval(String value, long milliseconds) {
         this.value = value;
         this.milliseconds = milliseconds;
     }
 
-    public String getValue() {
-        return value;
-    }
-
-    public long getMilliseconds() {
-        return milliseconds;
-    }
-
-    public static BinanceInterval fromString(String value) {
-        for (BinanceInterval interval : BinanceInterval.values()) {
+    public static Interval fromString(String value) {
+        for (Interval interval : Interval.values()) {
             if (interval.value.equals(value)) {
                 return interval;
             }
         }
-        throw new IllegalArgumentException("Unknown interval: " + value);
+        throw new InputInvalidException("NOT RIGHT INTERVAL");
     }
 
     @Override
