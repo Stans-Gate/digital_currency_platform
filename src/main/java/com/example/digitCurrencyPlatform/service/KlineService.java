@@ -86,12 +86,12 @@ public class KlineService {
         }
 
         if (targetIntervalMs == baseIntervalMs) {
-            return klines.stream().limit(limit).collect(Collectors.toList());
+            return klines.parallelStream().limit(limit).collect(Collectors.toList());
         }
 
         List<Kline> aggregatedKlines = aggregateKlines(klines, interval, baseInterval);
 
-        return aggregatedKlines.stream().limit(limit).collect(Collectors.toList());
+        return aggregatedKlines.parallelStream().limit(limit).collect(Collectors.toList());
     }
 
 

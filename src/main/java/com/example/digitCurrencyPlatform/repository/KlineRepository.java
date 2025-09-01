@@ -38,8 +38,6 @@ public interface KlineRepository {
     List<Kline> retrieveKlineDataWithStartAndEndTime(@Param("symbol") String symbol, @Param("openTime") long openTime,
                                                      @Param("closeTime") long closeTime, @Param("limit") int limit);
 
-    // Retrieve kline data according to the interval
-
 
     // delete a row of kline data using the symbol and openTime
     @Delete("DELETE FROM kline_data WHERE symbol = #{symbol} AND open_time = #{openTime}")

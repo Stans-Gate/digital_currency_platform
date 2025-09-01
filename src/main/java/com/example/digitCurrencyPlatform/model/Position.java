@@ -1,5 +1,7 @@
 package com.example.digitCurrencyPlatform.model;
 
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
@@ -13,16 +15,13 @@ import java.math.BigDecimal;
 @NoArgsConstructor
 @Data
 @Validated
-public class Kline {
+public class Position {
     @NotBlank
     private String symbol;
+
     @NotNull
-    private Long openTime;
-    private Long closeTime;
-    private BigDecimal openPrice;
-    private BigDecimal closePrice;
-    private BigDecimal highPrice;
-    private BigDecimal lowPrice;
-    private BigDecimal volume;
-    private Long numberOfTrades;
+    @DecimalMin(value = "0.0", inclusive = false, message = "Weight must be greater than 0")
+    @DecimalMax(value = "1.0", inclusive = true, message = "Weight must not exceed 1.0")
+    private BigDecimal weight; // 0.5 for 50%
 }
+
