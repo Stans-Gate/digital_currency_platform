@@ -1,8 +1,8 @@
 package com.example.digitCurrencyPlatform.service;
 
 import com.example.digitCurrencyPlatform.enums.Interval;
-import com.example.digitCurrencyPlatform.model.InputInvalidException;
 import com.example.digitCurrencyPlatform.model.Kline;
+import com.example.digitCurrencyPlatform.model.exception.InputInvalidException;
 import com.example.digitCurrencyPlatform.repository.KlineRepository;
 import com.example.digitCurrencyPlatform.service.provider.KlineDataProvider;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,15 +53,6 @@ public class KlineService {
                 .toList();
 
         System.out.println("Total fetched and saved: " + allKlines.size() + " kline records");
-
-        //        for (long t = startTime; t < endTime; t += gap) {
-//            final long start = t;
-//            final long end = Math.min(t + gap, endTime);
-//            List<Kline> klines = binanceService.fetchAndSaveKlines(symbol, interval, start, end);
-//            System.out.println("Start inserting... " + "count: " + klines.size());
-//            klineRepository.batchInsert(klines);
-//            System.out.println("Inserted " + klines.size() + " kline records into the database.");
-//        }
     }
 
 
@@ -168,8 +159,6 @@ public class KlineService {
         return new Kline(symbol, openTime, closeTime, openPrice, closePrice, highPrice, lowPrice, volume, numberOfTrades);
     }
 
-
-    // Helpers:
     public List<String> getAvailableProviders() {
         return new ArrayList<>(providers.keySet());
     }

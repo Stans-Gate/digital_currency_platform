@@ -18,11 +18,18 @@ public class Kline {
     private String symbol;
     @NotNull
     private Long openTime;
+    @NotNull
     private Long closeTime;
+    @NotNull
     private BigDecimal openPrice;
+    @NotNull
     private BigDecimal closePrice;
+    @NotNull
     private BigDecimal highPrice;
+    @NotNull
     private BigDecimal lowPrice;
+    @NotNull
     private BigDecimal volume;
+    @NotNull
     private Long numberOfTrades;
 }

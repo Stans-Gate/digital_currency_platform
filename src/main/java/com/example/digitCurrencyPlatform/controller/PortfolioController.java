@@ -28,10 +28,10 @@ public class PortfolioController {
     @GetMapping("/test")
     public ResponseEntity<List<Kline>> testPortfolio() {
         List<Position> positions = new ArrayList<>();
-        positions.add(new Position("BTCUSDT", new BigDecimal(1)));
+        positions.add(new Position("BTCUSDT", new BigDecimal("0.5")));
+        positions.add(new Position("ETHUSDT", new BigDecimal("0.5")));
         List<Kline> portfolioKlines = portfolioService.calculatePortfolioKlines(positions, new BigDecimal(100000000), 1752979919000L, 1753066319000L, Interval.FIVE_MINUTES);
         return ResponseEntity.ok(portfolioKlines);
     }
-
 
 }

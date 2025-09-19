@@ -1,7 +1,7 @@
 package com.example.digitCurrencyPlatform.controller;
 
 
-import com.example.digitCurrencyPlatform.model.InputInvalidException;
+import com.example.digitCurrencyPlatform.model.exception.InputInvalidException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -13,5 +13,6 @@ public class KlineControllerExceptionHandler {
     public ResponseEntity<String> handleException(Exception e) {
         return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
     }
+
 
 }

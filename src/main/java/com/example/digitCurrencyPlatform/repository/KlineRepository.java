@@ -64,6 +64,4 @@ public interface KlineRepository {
     })
     void batchInsert(@Param("klines") List<Kline> klines);
 
-    // retrieve
-
 }

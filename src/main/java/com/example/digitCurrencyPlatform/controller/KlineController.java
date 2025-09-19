@@ -1,11 +1,13 @@
 package com.example.digitCurrencyPlatform.controller;
 
 
+import com.example.digitCurrencyPlatform.enums.Exchange;
 import com.example.digitCurrencyPlatform.enums.Interval;
-import com.example.digitCurrencyPlatform.model.InputInvalidException;
 import com.example.digitCurrencyPlatform.model.Kline;
+import com.example.digitCurrencyPlatform.model.exception.InputInvalidException;
 import com.example.digitCurrencyPlatform.service.InputValidationService;
 import com.example.digitCurrencyPlatform.service.KlineService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,27 +20,48 @@ public class KlineController {
     private final KlineService klineService;
     private final InputValidationService inputValidationService;
 
-    public KlineController(KlineService klineService) {
+    public KlineController(KlineService klineService, InputValidationService inputValidationService) {
         this.klineService = klineService;
-        this.inputValidationService = new InputValidationService();
+        this.inputValidationService = inputValidationService;
     }
 
-    @PostMapping("/fetch/binance")
-    public ResponseEntity<String> fetchBinanceKlines(
+    @PostMapping("/fetch/{exchange}")
+    public ResponseEntity fetchBinanceKlines(
+            @PathVariable String exchange,
             @RequestParam String symbol,
             @RequestParam String interval,
             @RequestParam long startTime,
             @RequestParam long endTime) {
+
         if (symbol == null || symbol == "") {
             throw new InputInvalidException("symbol is empty"); // who to handle -> KlineControllerExceptionHandler
         }
-        Interval intervalEnum = Interval.fromString(interval);
-        klineService.fetchAndSaveKlines("BINANCE", symbol, intervalEnum, startTime, endTime, 500);
-        return ResponseEntity.ok("Kline data fetched and inserted.");
 
+        Exchange exchangeEnum;
+        try {
+            exchangeEnum = Exchange.fromString(exchange);
+        } catch (IllegalArgumentException e) {
+            throw new InputInvalidException("Invalid exchange: " + exchange);
+        }
+
+        Interval intervalEnum;
+        try {
+            intervalEnum = Interval.fromString(interval);
+        } catch (InputInvalidException e) {
+            throw new InputInvalidException("Invalid interval: " + interval);
+        }
+
+        if (!exchangeEnum.supportsInterval(interval)) {
+            throw new InputInvalidException("Interval " + interval +
+                    " not supported by " + exchangeEnum.getDisplayName());
+        }
+
+        klineService.fetchAndSaveKlines(exchange, symbol, intervalEnum, startTime, endTime, 500);
+        return ResponseEntity.status(HttpStatus.CREATED).body("Kline data fetch initiated for " + exchangeEnum.getDisplayName());
     }
 
-    @GetMapping("/retrieve-aggregated")
+
+    @GetMapping("/retrieve")
     public ResponseEntity<List<Kline>> retrieveAggregatedKlines(
             @RequestParam String symbol,
             @RequestParam String interval,
@@ -60,11 +83,8 @@ public class KlineController {
 
     @GetMapping("/symbol")
     public ResponseEntity<Set<String>> fetchSymbols() {
-        try {
-            return ResponseEntity.ok(inputValidationService.validateBinanceSymbol());
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
-        }
+
+        return ResponseEntity.ok(inputValidationService.validateBinanceSymbol());
 
     }
 }

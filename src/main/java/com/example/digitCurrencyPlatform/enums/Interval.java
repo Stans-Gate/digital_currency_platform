@@ -1,6 +1,6 @@
 package com.example.digitCurrencyPlatform.enums;
 
-import com.example.digitCurrencyPlatform.model.InputInvalidException;
+import com.example.digitCurrencyPlatform.model.exception.InputInvalidException;
 import lombok.Getter;
 
 @Getter
