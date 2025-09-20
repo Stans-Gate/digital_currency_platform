@@ -5,6 +5,11 @@ import com.example.digitCurrencyPlatform.model.Kline;
 import com.example.digitCurrencyPlatform.model.exception.InputInvalidException;
 import com.example.digitCurrencyPlatform.repository.KlineRepository;
 import com.example.digitCurrencyPlatform.service.provider.KlineDataProvider;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -25,7 +30,14 @@ public class KlineService {
         dataProviders.forEach(provider -> providers.put(provider.getProviderName().toUpperCase(), provider));
     }
 
-    public void fetchAndSaveKlines(String providerName, String symbol, Interval interval, long startTime, long endTime, int limit) {
+    public void fetchAndSaveKlines(
+            @NotBlank(message = "Provider name cannot be blank") String providerName,
+            @NotBlank(message = "Symbol cannot be blank") String symbol,
+            @NotNull(message = "Interval cannot be null") Interval interval,
+            @NotNull(message = "Start time cannot be null")
+            @Min(value = 0, message = "Start time must be non-negative") Long startTime,
+            @NotNull(message = "End time cannot be null") @Min(value = 0, message = "End time must be non-negative") Long endTime,
+            int limit) {
         KlineDataProvider provider = providers.get(providerName.toUpperCase());
         if (provider == null) {
             throw new IllegalArgumentException("Provider not found");
@@ -56,7 +68,13 @@ public class KlineService {
     }
 
 
-    public List<Kline> retrieveKlinesWithDifferentIntervals(String symbol, Interval interval, long startTime, long endTime, int limit, Interval baseInterval) {
+    public List<Kline> retrieveKlinesWithDifferentIntervals(
+            @NotBlank(message = "Symbol cannot be blank") String symbol,
+            @NotNull(message = "Interval cannot be null") Interval interval,
+            @NotNull(message = "Start time cannot be null") @Min(value = 0, message = "Start time must be non-negative") Long startTime,
+            @NotNull(message = "End time cannot be null") @Min(value = 0, message = "End time must be non-negative") Long endTime,
+            int limit,
+            @NotNull(message = "Base interval cannot be null") Interval baseInterval) {
         int numToRetrieve;
         long targetIntervalMs = interval.getMilliseconds();
         long baseIntervalMs = baseInterval.getMilliseconds();
@@ -86,7 +104,7 @@ public class KlineService {
     }
 
 
-    private List<Kline> aggregateKlines(List<Kline> klines, Interval interval, Interval baseInterval) {
+    private List<Kline> aggregateKlines(@NotNull @NotEmpty List<@Valid Kline> klines, @NotNull Interval interval, @NotNull Interval baseInterval) {
         if (interval.getMilliseconds() < baseInterval.getMilliseconds()) {
             throw new IllegalArgumentException();
         }
@@ -125,7 +143,10 @@ public class KlineService {
     }
 
 
-    private Kline aggregateKlineWindow(List<Kline> klines, long windowStart, long intervalMs) {
+    private Kline aggregateKlineWindow(
+            @NotNull @NotEmpty List<@Valid Kline> klines,
+            @NotNull Long windowStart,
+            @NotNull Long intervalMs) {
         if (klines.isEmpty()) {
             throw new IllegalArgumentException("Cannot aggregate empty kline list");
         }

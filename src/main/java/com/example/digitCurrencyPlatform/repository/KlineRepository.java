@@ -1,6 +1,10 @@
 package com.example.digitCurrencyPlatform.repository;
 
 import com.example.digitCurrencyPlatform.model.Kline;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import org.apache.ibatis.annotations.*;
 
 import java.util.List;
@@ -20,7 +24,7 @@ public interface KlineRepository {
             @Result(property = "numberOfTrades", column = "number_of_trades")
 
     })
-    List<Kline> findAll();
+    List<@Valid Kline> findAll();
 
     // Use time range to find
     @Select("SELECT * FROM kline_data " +
@@ -35,13 +39,18 @@ public interface KlineRepository {
             @Result(property = "volume", column = "volume"),
             @Result(property = "numberOfTrades", column = "number_of_trades")
     })
-    List<Kline> retrieveKlineDataWithStartAndEndTime(@Param("symbol") String symbol, @Param("openTime") long openTime,
-                                                     @Param("closeTime") long closeTime, @Param("limit") int limit);
+    List<@Valid Kline> retrieveKlineDataWithStartAndEndTime(
+            @Param("symbol") @NotBlank(message = "Symbol cannot be blank") String symbol,
+            @Param("openTime") @NotNull(message = "Open time cannot be null") @Min(value = 0) Long openTime,
+            @Param("closeTime") @NotNull(message = "Close time cannot be null") @Min(value = 0) Long closeTime,
+            @Param("limit") int limit);
 
 
     // delete a row of kline data using the symbol and openTime
     @Delete("DELETE FROM kline_data WHERE symbol = #{symbol} AND open_time = #{openTime}")
-    public void deleteBySymbolAndOpenTime(@Param("symbol") String symbol, @Param("openTime") long openTime);
+    public void deleteBySymbolAndOpenTime(
+            @Param("symbol") @NotBlank(message = "Symbol cannot be blank") String symbol,
+            @Param("openTime") @NotNull(message = "Open time cannot be null") Long openTime);
 
     // insert a row of kline data
     @Insert("INSERT INTO kline_data(symbol, open_time, close_time, " +
@@ -49,7 +58,7 @@ public interface KlineRepository {
             "VALUES (#{symbol}, #{openTime}, #{closeTime}, " +
             "#{openPrice}, #{closePrice}, #{highPrice}, #{lowPrice}, #{volume}, " +
             "#{numberOfTrades})")
-    public int insert(Kline kline);
+    public int insert(@Valid @NotNull(message = "Kline cannot be null") Kline kline);
 
     // batch insert
     @Insert({
@@ -62,6 +71,6 @@ public interface KlineRepository {
             "</foreach>",
             "</script>"
     })
-    void batchInsert(@Param("klines") List<Kline> klines);
+    void batchInsert(@Param("klines") List<@Valid @NotNull Kline> klines);
 
 }

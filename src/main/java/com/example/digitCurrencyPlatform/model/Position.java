@@ -16,12 +16,12 @@ import java.math.BigDecimal;
 @Data
 @Validated
 public class Position {
-    @NotBlank
+    @NotBlank(message = "Symbol cannot be blank")
     private String symbol;
 
     @NotNull
     @DecimalMin(value = "0.0", inclusive = false, message = "Weight must be greater than 0")
     @DecimalMax(value = "1.0", inclusive = true, message = "Weight must not exceed 1.0")
-    private BigDecimal weight; // 0.5 for 50%
+    private BigDecimal weight;
 }
 
